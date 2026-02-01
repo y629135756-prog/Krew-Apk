@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Krew Apk | Store & Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <style>
+        :root { --primary: #01875f; --bg: #ffffff; --text-main: #202124; --text-sub: #5f6368; --border: #dadce0; --admin: #d93025; --green-logo: #00e676; }
+        * { box-sizing: border-box; font-family: 'Google Sans', sans-serif; margin: 0; padding: 0; }
+        body { background-color: var(--bg); padding-bottom: 70px; }
+
+        /* Header Style Update */
+        .header { background: var(--primary); padding: 10px 15px; position: sticky; top: 0; z-index: 1000; display: flex; align-items: center; gap: 10px; }
+        .logo-text { color: white; font-weight: 700; font-size: 18px; white-space: nowrap; }
+        .logo-text span { color: var(--green-logo); }
+        
+        .search-bar { background: white; border-radius: 25px; padding: 6px 12px; display: flex; align-items: center; gap: 8px; flex-grow: 1; }
+        .search-bar input { border: none; outline: none; width: 100%; font-size: 13px; background: transparent; padding: 5px 0; }
+        
+        .notif-btn { color: white; position: relative; cursor: pointer; display: flex; align-items: center; }
+        .dot { position: absolute; top: 2px; right: 2px; width: 8px; height: 8px; background: red; border-radius: 50%; border: 1px solid var(--primary); display: none; }
+
+        /* Notification List Style */
+        .notif-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
+        .notif-item img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; }
+        .notif-item-info b { font-size: 14px; display: block; }
+        .notif-item-info span { font-size: 11px; color: gray; }
+
+        /* App Cards */
+        main { padding: 15px; }
+        .app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); gap: 12px; margin-bottom: 30px; }
+        .card { text-align: center; cursor: pointer; width: 100%; }
+        .card .img-container { width: 100%; aspect-ratio: 1/1; border-radius: 18px; overflow: hidden; border: 1px solid #f0f0f0; margin-bottom: 6px; }
+        .card img { width: 100%; height: 100%; object-fit: cover; }
+        .card-name { font-size: 11px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 2px; }
+
+        /* Nav & Overlays */
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid var(--border); z-index: 1000; }
+        .nav-item { text-align: center; color: var(--text-sub); cursor: pointer; font-size: 11px; }
+        .nav-item.active { color: var(--primary); }
+        .nav-item .material-icons-outlined { display: block; font-size: 24px; }
+
+        #pageDetails { position: fixed; inset: 0; background: white; z-index: 2000; overflow-y: auto; display: none; }
+        .install-big { background: var(--primary); color: white; border: none; padding: 15px; width: calc(100% - 40px); margin: 20px; border-radius: 30px; font-weight: bold; cursor: pointer; }
+        
+        .modal { position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:3000; display:none; align-items:center; justify-content:center; }
+        .modal-content { background:white; padding:20px; border-radius:20px; width:85%; max-height:80vh; overflow-y:auto; position: relative; }
+        
+        .hidden { display: none; }
+        input, textarea, select { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; }
+        .dev-list-item { background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--primary); cursor: pointer; }
+        .dev-apps { margin-left: 15px; padding-top: 10px; border-top: 1px dashed #ccc; display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="logo-text">Krew<span>Apk</span></div>
+        <div class="search-bar">
+            <span class="material-icons-outlined" style="color:gray; font-size:18px">search</span>
+            <input type="text" id="searchInput" placeholder="Search..." oninput="handleSearch()">
+        </div>
+        <div class="notif-btn" onclick="openNotif()">
+            <span class="material-icons-outlined">notifications</span>
+            <div id="notif-dot" class="dot"></div>
+        </div>
+    </div>
+
+    <main id="main-content">
+        <section id="tab-store">
+            <h3 style="margin-bottom:15px">All Apps & Games</h3>
+            <div class="app-grid" id="grid-discover"></div>
+        </section>
+
+        <section id="tab-games" class="hidden">
+            <h3 style="margin-bottom:15px">All Games</h3>
+            <div class="app-grid" id="grid-games"></div>
+        </section>
+
+        <section id="tab-hot" class="hidden">
+            <h3 style="margin-bottom:15px">Top Trending</h3>
+            <div class="app-grid" id="grid-hot"></div>
+        </section>
+
+        <section id="tab-me" class="hidden">
+            <div id="auth-area">
+                <div style="text-align:center; padding:50px 20px">
+                    <span class="material-icons-outlined" style="font-size:80px; color:#ccc">account_circle</span>
+                    <p style="margin:10px 0; color:gray">Login to upload your own apps</p>
+                    <button class="install-big" onclick="openModal('authModal')" style="margin:10px auto">Login / Register</button>
+                </div>
+            </div>
+            
+            <div id="studio-area" class="hidden">
+                <h2 id="welcome-msg" style="padding:15px 15px 0"></h2>
+                <button class="install-big" onclick="openModal('appModal')" style="margin:15px 20px">+ Upload Content</button>
+                
+                <div id="admin-panel" class="hidden" style="padding:15px">
+                    <h3 style="color:var(--admin)">Master Admin Panel</h3>
+                    <div id="master-dev-list" style="margin-top:10px"></div>
+                </div>
+
+                <div id="user-apps-section" style="padding:15px">
+                    <h3>My Uploads</h3>
+                    <div id="my-uploads"></div>
+                </div>
+                <button onclick="logout()" style="color:red; border:none; background:none; padding:20px; width:100%">Logout</button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Notification Modal -->
+    <div id="notifModal" class="modal">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
+                <h3>New Releases</h3>
+                <span class="material-icons-outlined" onclick="closeModal('notifModal')">close</span>
+            </div>
+            <div id="notif-list">
+                <p style="text-align:center; color:gray; padding:20px">No new updates</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Page -->
+    <div id="pageDetails">
+        <div style="padding:15px"><span class="material-icons-outlined" onclick="closeDetails()">arrow_back</span></div>
+        <div id="details-body"></div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="switchNav('store', this)"><span class="material-icons-outlined">storefront</span>STORE</div>
+        <div class="nav-item" onclick="switchNav('games', this)"><span class="material-icons-outlined">sports_esports</span>GAMES</div>
+        <div class="nav-item" onclick="switchNav('hot', this)"><span class="material-icons-outlined">local_fire_department</span>HOT</div>
+        <div class="nav-item" onclick="switchNav('me', this)"><span class="material-icons-outlined">account_circle</span>ME</div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="authModal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-bottom:15px">Studio Access</h3>
+            <input type="text" id="log-u" placeholder="Username">
+            <input type="password" id="log-p" placeholder="Password">
+            <button class="install-big" onclick="login()" style="width:100%; margin:10px 0">Login / Register</button>
+            <p style="text-align:center; font-size:12px; color:gray" onclick="closeModal('authModal')">Cancel</p>
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div id="appModal" class="modal">
+        <div class="modal-content">
+            <h3>Upload App</h3>
+            <input type="text" id="new-name" placeholder="App Name">
+            <select id="new-cat"><option>Game</option><option>Apps</option></select>
+            <input type="text" id="new-logo" placeholder="Icon URL">
+            <input type="text" id="new-ss" placeholder="Screenshots (comma separated)">
+            <input type="text" id="new-file" placeholder="Download Link">
+            <textarea id="new-desc" placeholder="App Description"></textarea>
+            <button class="install-big" onclick="uploadApp()" style="width:100%; margin:0">Publish</button>
+            <p style="text-align:center; margin-top:15px" onclick="closeModal('appModal')">Close</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, push, onValue, get, update, remove, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAParmwu5XOUlmANfhdybXTWRbdsFEWwc",
+            authDomain: "play-ea926.firebaseapp.com",
+            databaseURL: "https://play-ea926-default-rtdb.firebaseio.com",
+            projectId: "play-ea926",
+            storageBucket: "play-ea926.firebasestorage.app",
+            messagingSenderId: "228076443690",
+            appId: "1:228076443690:web:5550101f131d0f30760b53"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let currentUser = JSON.parse(localStorage.getItem('user')) || null;
+        let allApps = [];
+        const ADMIN_USER = "admin"; 
+
+        onValue(ref(db, 'apps'), (snap) => {
+            const data = snap.val();
+            const oldAppCount = allApps.length;
+            allApps = data ? Object.keys(data).map(k => ({id:k, ...data[k]})) : [];
+            
+            // Check for new apps to show notification dot
+            const lastViewedCount = localStorage.getItem('lastAppCount') || 0;
+            if(allApps.length > lastViewedCount) {
+                document.getElementById('notif-dot').style.display = 'block';
+            }
+
+            renderUI(allApps);
+            renderNotifications();
+        });
+
+        function renderUI(list) {
+            populate('grid-discover', list);
+            populate('grid-games', list.filter(a => a.category === 'Game'));
+            populate('grid-hot', [...list].sort((a,b) => b.downloads - a.downloads).slice(0,10));
+            
+            if(currentUser) {
+                document.getElementById('auth-area').classList.add('hidden');
+                document.getElementById('studio-area').classList.remove('hidden');
+                document.getElementById('welcome-msg').innerText = "Hi, " + currentUser.user;
+                
+                const myApps = allApps.filter(a => a.devId === currentUser.user);
+                document.getElementById('my-uploads').innerHTML = myApps.length ? myApps.map(a => `
+                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #eee; align-items:center">
+                        <span>${a.name}</span>
+                        <button onclick="deleteApp('${a.id}')" style="color:red; border:none; background:none"><span class="material-icons-outlined">delete</span></button>
+                    </div>
+                `).join('') : '<p style="color:gray;font-size:12px">No uploads yet</p>';
+
+                if(currentUser.user === ADMIN_USER) {
+                    document.getElementById('admin-panel').classList.remove('hidden');
+                    renderAdminPanel();
+                }
+            }
+        }
+
+        function populate(gridId, list) {
+            const grid = document.getElementById(gridId);
+            if(!grid) return;
+            grid.innerHTML = list.map(a => `
+                <div class="card" onclick="openDetails('${a.id}')">
+                    <div class="img-container"><img src="${a.logo}"></div>
+                    <div class="card-name">${a.name}</div>
+                </div>
+            `).join('');
+        }
+
+        // Notification Rendering
+        function renderNotifications() {
+            const recent = [...allApps].reverse().slice(0, 5); // Last 5 apps
+            const container = document.getElementById('notif-list');
+            if(!recent.length) return;
+            
+            container.innerHTML = recent.map(a => `
+                <div class="notif-item" onclick="openDetails('${a.id}'); closeModal('notifModal')">
+                    <img src="${a.logo}">
+                    <div class="notif-item-info">
+                        <b>${a.name}</b>
+                        <span>New app added to store</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.openNotif = () => {
+            document.getElementById('notif-dot').style.display = 'none';
+            localStorage.setItem('lastAppCount', allApps.length);
+            openModal('notifModal');
+        };
+
+        // Secure Login
+        window.login = async () => {
+            const u = document.getElementById('log-u').value.trim().toLowerCase();
+            const p = document.getElementById('log-p').value;
+            if(!u || !p) return alert("Fill all fields");
+            const userRef = ref(db, 'users/' + u);
+            const snapshot = await get(userRef);
+            if (snapshot.exists()) {
+                if (snapshot.val().pass === p) {
+                    currentUser = { user: u };
+                    localStorage.setItem('user', JSON.stringify(currentUser));
+                    location.reload();
+                } else alert("Wrong password!");
+            } else {
+                await set(userRef, { user: u, pass: p });
+                currentUser = { user: u };
+                localStorage.setItem('user', JSON.stringify(currentUser));
+                location.reload();
+            }
+        };
+
+        window.uploadApp = async () => {
+            const data = {
+                name: document.getElementById('new-name').value,
+                category: document.getElementById('new-cat').value,
+                logo: document.getElementById('new-logo').value,
+                screens: document.getElementById('new-ss').value.split(','),
+                file: document.getElementById('new-file').value,
+                desc: document.getElementById('new-desc').value,
+                devId: currentUser.user,
+                devName: currentUser.user,
+                downloads: 0,
+                timestamp: Date.now()
+            };
+            if(!data.name || !data.file) return alert("Name and File URL required");
+            await push(ref(db, 'apps'), data);
+            closeModal('appModal');
+        };
+
+        window.openDetails = (id) => {
+            const a = allApps.find(x => x.id === id);
+            const ss = a.screens ? a.screens.map(s => `<img src="${s.trim()}" style="height:150px; border-radius:10px">`).join('') : '';
+            document.getElementById('details-body').innerHTML = `
+                <div style="display:flex; gap:15px; padding:20px; align-items:center">
+                    <img src="${a.logo}" style="width:80px; height:80px; border-radius:18px; border:1px solid #eee">
+                    <div>
+                        <h2>${a.name}</h2>
+                        <p style="color:var(--primary)">${a.devName} ></p>
+                        <p style="font-size:12px; color:gray">${a.category}</p>
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:space-around; border-top:1px solid #eee; border-bottom:1px solid #eee; padding:15px 0; text-align:center; margin:0 20px">
+                    <div><b>4.5★</b><br><small>SCORE</small></div>
+                    <div><b>${a.downloads}+</b><br><small>DLs</small></div>
+                    <div><b>APK</b><br><small>TYPE</small></div>
+                </div>
+                <div style="display:flex; gap:10px; overflow-x:auto; padding:20px; scrollbar-width:none">${ss}</div>
+                <div style="padding:0 20px"><h3>Description</h3><p style="color:gray; font-size:14px; margin-top:5px">${a.desc}</p></div>
+                <button class="install-big" onclick="download('${a.id}','${a.file}')">Install</button>
+            `;
+            document.getElementById('pageDetails').style.display = 'block';
+        };
+
+        // Admin functionality
+        function renderAdminPanel() {
+            const devs = {};
+            allApps.forEach(a => {
+                if(!devs[a.devId]) devs[a.devId] = { name: a.devName, apps: [] };
+                devs[a.devId].apps.push(a);
+            });
+            document.getElementById('master-dev-list').innerHTML = Object.keys(devs).map(devId => `
+                <div class="dev-list-item" onclick="toggleDevApps('${devId}')">
+                    <b>${devs[devId].name} (@${devId})</b>
+                    <div id="dev-${devId}" class="dev-apps">
+                        ${devs[devId].apps.map(app => `
+                            <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px">
+                                <span>• ${app.name}</span>
+                                <button onclick="deleteApp('${app.id}')" style="color:red; border:none; background:none">DELETE</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.toggleDevApps = (id) => {
+            const el = document.getElementById('dev-'+id);
+            el.style.display = el.style.display === 'block' ? 'none' : 'block';
+        };
+
+        window.handleSearch = () => {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allApps.filter(a => a.name.toLowerCase().includes(query));
+            populate('grid-discover', filtered);
+        };
+
+        window.switchNav = (t, el) => {
+            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+            document.getElementById('tab-'+t).classList.remove('hidden');
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+        };
+
+        window.download = (id, link) => { update(ref(db, `apps/${id}`), { downloads: increment(1) }); window.open(link, '_blank'); };
+        window.deleteApp = (id) => confirm("Delete this app?") && remove(ref(db, `apps/${id}`));
+        window.logout = () => { localStorage.removeItem('user'); location.reload(); };
+        window.openModal = (id) => document.getElementById(id).style.display = 'flex';
+        window.closeModal = (id) => document.getElementById(id).style.display = 'none';
+        window.closeDetails = () => document.getElementById('pageDetails').style.display = 'none';
+
+    </script>
+</body>
+</html>
